@@ -11,12 +11,13 @@ export const liveProcessIdleTimeoutMs = { current: LIVE_PROCESS_IDLE_TIMEOUT_MS 
 // Each live process mapped to the timer that kills it if pi never calls back.
 const liveProcesses = new Map<LiveProcess, NodeJS.Timeout>();
 
-export function addLiveProcess(process: LiveProcess): void {
+/** A provider whose CLI enforces its own shorter tool deadline passes its own idle bound. */
+export function addLiveProcess(process: LiveProcess, idleTimeoutMs: number = liveProcessIdleTimeoutMs.current): void {
 	removeLiveProcess(process);
 	const timer = setTimeout(() => {
 		removeLiveProcess(process);
 		process.kill();
-	}, liveProcessIdleTimeoutMs.current);
+	}, idleTimeoutMs);
 
 	timer.unref();
 

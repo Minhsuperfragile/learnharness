@@ -20,6 +20,9 @@ import { chatGPTStream } from "./chatgpt-stream.ts";
 import type { ChatGPTDispatchLifecycle } from "./chatgpt-request-cycle.ts";
 import { createClaudeCodeProvider } from "./claude-code/provider.ts";
 import { streamClaudeCode } from "./claude-code/stream.ts";
+import { createAntigravityProvider } from "./antigravity/provider.ts";
+import { streamAntigravity } from "./antigravity/stream.ts";
+import type { AgyModelInfo } from "./antigravity/installation.ts";
 import { nativeSubscriptionId, nativeSubscriptionModel } from "./subscription-bridge.ts";
 import { nativeSubscriptionStream } from "./subscription-stream.ts";
 
@@ -54,6 +57,14 @@ export interface PiEngine {
 export type { ThinkingLevel };
 
 let collection: ReturnType<typeof createModels> | undefined;
+/** The Antigravity CLI's own model list (it varies by account tier and CLI version).
+ * The server layer loads/refreshes it; the agent layer only republishes the provider. */
+let antigravityModels: readonly AgyModelInfo[] = [];
+
+export function setAntigravityModels(models: readonly AgyModelInfo[]): void {
+	antigravityModels = [...models];
+	collection?.setProvider(createAntigravityProvider(streamAntigravity, antigravityModels));
+}
 interface ProviderSource {
 	sync(models: MutableModels): void;
 	isCustom(id: string): boolean;
@@ -92,6 +103,7 @@ export function piModels() {
 				: provider);
 		}
 		collection.setProvider(createClaudeCodeProvider(streamClaudeCode));
+		collection.setProvider(createAntigravityProvider(streamAntigravity, antigravityModels));
 	}
 	providerSource?.sync(collection);
 	return collection;
